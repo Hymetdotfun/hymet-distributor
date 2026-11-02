@@ -14,6 +14,9 @@ declare_id!("9X9fnj4Uh9WC9nmxCahTVsixHZ6VGxNpMesuGhK239Px");
 pub const HYPE_MINT: Pubkey = pubkey!("98sMhvDwXj1RQi5c5Mndm3vPe9cBqPrbLaufMXFNMh5g");
 pub const DBC_PROGRAM: Pubkey = pubkey!("dbcij3LWUppWqq96dh6gJWwBifmcGfLSB5D4DuSMaqN");
 pub const DAMM_V2_PROGRAM: Pubkey = pubkey!("cpamdpZCGKUy5JxQXB4dcpGPiikHawvSWAd6mEn1sGG");
+/// Meteora's DBC -> DAMM v2 migration config for MigrationFeeOption::Customizable (HYMET's only launch config). Only
+/// the DBC pool authority can create pools under it, so its pool PDA for (mint, HYPE) is the one migration destination.
+pub const DAMM_V2_MIGRATION_CONFIG: Pubkey = pubkey!("A8gMrEPJkacWkcb3DGwtJwTe16HktSEfvwtuDh2MCtck");
 pub const PLATFORM_BPS: u64 = 2_000;
 pub const BPS_DENOMINATOR: u64 = 10_000;
 const HOLDER_CHUNK_DOMAIN: &[u8] = b"HYMET_HOLDER_PAYOUT_V2\0";
@@ -131,6 +134,13 @@ pub mod hymet_rewards_distributor {
             ErrorCode::InvalidPool
         );
         require!(!ctx.accounts.damm_pool.executable, ErrorCode::InvalidPool);
+        // Only the canonical migration pool: a creator can no longer register an arbitrary DAMM v2 account first and
+        // permanently block post-graduation settlement (and holder payouts) for the mint.
+        require_keys_eq!(
+            ctx.accounts.damm_pool.key(),
+            canonical_damm_pool(&ctx.accounts.fee_pool.token_mint),
+            ErrorCode::InvalidPool
+        );
         require!(
             ctx.accounts.fee_pool.damm_pool == Pubkey::default(),
             ErrorCode::AlreadyRegistered
@@ -1183,9 +1193,35 @@ pub enum ErrorCode {
     EpochActive,
 }
 
+/// DAMM v2 pool PDA: ["pool", config, larger mint, smaller mint] (Meteora's getFirstKey/getSecondKey order).
+pub fn canonical_damm_pool(token_mint: &Pubkey) -> Pubkey {
+    let (first, second) = if token_mint.to_bytes() > HYPE_MINT.to_bytes() {
+        (*token_mint, HYPE_MINT)
+    } else {
+        (HYPE_MINT, *token_mint)
+    };
+    Pubkey::find_program_address(
+        &[b"pool", DAMM_V2_MIGRATION_CONFIG.as_ref(), first.as_ref(), second.as_ref()],
+        &DAMM_V2_PROGRAM,
+    )
+    .0
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn registration_accepts_only_the_canonical_migration_pool() {
+        // Vectors from @meteora-ag/dynamic-bonding-curve-sdk deriveDammV2PoolAddress with Mainnet HYPE; both key orders.
+        let trz = pubkey!("2Rrynqg8C6eSiFeJCf8XqVSfPpxdNoXFCv2juunkHoM6");
+        let wsol = pubkey!("So11111111111111111111111111111111111111112");
+        assert_eq!(canonical_damm_pool(&trz), pubkey!("FSx7CMySvPhUFgYcbLmq2Y6wpwft6TbEQvfPFtRQdtEv"));
+        assert_eq!(canonical_damm_pool(&wsol), pubkey!("7w45HnbFD1EXT2SdUwpCKRb9o3obTyySMP98MUpuGKhE"));
+        // The same pair under another (public, static) DAMM v2 config is a pool anyone could create: rejected.
+        assert_ne!(canonical_damm_pool(&trz), pubkey!("65JjCV2MiiHRYjS36Rj7vnkgt3JS31Jg3NvqB5ehuoNz"));
+        assert_ne!(canonical_damm_pool(&trz), canonical_damm_pool(&Pubkey::new_unique()));
+    }
 
     fn fixture_info(
         key: Pubkey,
