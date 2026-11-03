@@ -1,0 +1,8 @@
+HYMET Distributor
+Copyright 2026 Hymetdotfun
+
+Licensed under the Apache License, Version 2.0 (see LICENSE).
+
+This program is also published in https://github.com/Hymetdotfun/hymet under
+programs/hymet-rewards-distributor. Dependencies resolved through Cargo are not
+included in this repository; each is distributed under its own license.

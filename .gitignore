@@ -1,0 +1,4 @@
+target/
+.anchor/
+*.so
+*-keypair.json
