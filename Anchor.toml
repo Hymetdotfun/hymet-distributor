@@ -1,0 +1,21 @@
+[toolchain]
+anchor_version = "0.31.1"
+solana_version = "2.2.1"
+
+[features]
+resolution = true
+skip-lint = false
+
+[programs.localnet]
+# Dedicated owner-authorized identity; local validator loading only until owner approves deployment.
+hymet_rewards_distributor = "9X9fnj4Uh9WC9nmxCahTVsixHZ6VGxNpMesuGhK239Px"
+
+[programs.mainnet]
+hymet_rewards_distributor = "9X9fnj4Uh9WC9nmxCahTVsixHZ6VGxNpMesuGhK239Px"
+
+[provider]
+cluster = "Localnet"
+wallet = "~/.config/solana/id.json"
+
+[workspace]
+members = ["programs/hymet-rewards-distributor"]
