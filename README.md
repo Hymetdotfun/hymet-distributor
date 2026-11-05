@@ -46,7 +46,12 @@ flowchart LR
   submit a chunk, each chunk pays once, only to the holder's canonical HYPE account, never beyond the funded amount.
 - **Canonical pool only.** After graduation only the DAMM v2 pool that Meteora's migration creates can be registered.
 
-[docs/DISTRIBUTOR.md](docs/DISTRIBUTOR.md) documents every account, instruction and check.
+- **Keeper rules are off-chain.** The holder snapshot, payout minimums (0.01 HYPE, or 0.05 HYPE when the keeper creates
+  the holder's HYPE account), carry-over and the 15-minute interval are set by the
+  [keeper](https://github.com/Hymetdotfun/hymet/blob/main/docs/KEEPER.md), not by this program.
+
+[docs/DISTRIBUTOR.md](docs/DISTRIBUTOR.md) documents every account, instruction and check, and what has been verified
+on Mainnet.
 
 ## Verify
 
@@ -62,7 +67,7 @@ sha256sum target/deploy/hymet_rewards_distributor.so
 cargo test --manifest-path programs/hymet-rewards-distributor/Cargo.toml
 ```
 
-All three hashes must equal `fda10de4…3e7b`. Details: [docs/VERIFY-BUILD.md](docs/VERIFY-BUILD.md).
+Both hashes must equal `fda10de4…3e7b`. Details: [docs/VERIFY-BUILD.md](docs/VERIFY-BUILD.md).
 
 ## Layout
 
